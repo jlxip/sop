@@ -1,5 +1,6 @@
 ; sop - Sector OPerations release 1
 ; by @jlxip, 2023-11-26
+; All the code in src/ is under GPLv3.
 
 ; sop assumes that it's ran on a system that:
 ; - supports int 13h extensions -> PCs since 2000
@@ -8,7 +9,7 @@
 ;     doesn't boot right into it -> will happen
 ; - is not buggy regarding int 16h/ah=0 -> no PC
 ; - does not mark as free: ~0x7B00, ~0x7E00, ~0x7F00 -> no PC
-; Very mild assumptions I thought were worth to note
+; Very mild assumptions I thought were worth noting
 
 ; --- sop memory map ---
 ;  ...  -0x7BF7         <- stack
@@ -18,7 +19,7 @@
 ; 0x8000-0x8100 (0x100) <- autoloader buffer
 
 ; --- Constants you might want to change ---
-DEFAULTCOLOR   equ 0x07   ; gray on black (DOS-like)
+DEFAULTCOLOR   equ 0x0F   ; white on black (Darwin-like)
 CURSOR_SHAPE   equ 0x0E0F ; underscore-like appearance
 ; --- Actual constants ---
 RELEASE        equ "1"
@@ -29,6 +30,7 @@ KBD_BUFF       equ 0x7E00
 AUTOLOAD_ADDR  equ 0x8000
 FRAMEBUFFER    equ 0xB800
 
+AUTOLOAD_MARK  equ 0x69
 AUTOLOAD_SECT  equ 0
 AUTOLOAD_LBA   equ 1
 
@@ -78,7 +80,7 @@ _init_cs:
     ; Autoloader
     mov byte [AUTOLOAD_ADDR], ah ; ah is still zero
     call readsect
-    cmp byte [AUTOLOAD_ADDR], 0x69
+    cmp byte [AUTOLOAD_ADDR], AUTOLOAD_MARK
     jz AUTOLOAD_ADDR+1
 
 cmd:

@@ -21,7 +21,7 @@ tmp.bin: $(SRCS)
 clean:
 	rm -f *.bin $(SYMBOLS) $(SYMBOLS_TMP)
 
-# ---
+# --- Examples ---
 
 .PHONY: helloworld runhelloworld
 runhelloworld: helloworld.img
@@ -30,4 +30,13 @@ helloworld: helloworld.img
 helloworld.img: sop.bin helloworld.bin
 	cat $^ > $@
 helloworld.bin: examples/helloworld.asm all
+	nasm -f bin -I src $< -o $@
+
+.PHONY: color runcolor
+runcolor: color.img
+	qemu-system-i386 -hda $<
+color: color.img
+color.img: sop.bin color.bin
+	cat $^ > $@
+color.bin: examples/color.asm all
 	nasm -f bin -I src $< -o $@

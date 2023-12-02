@@ -45,8 +45,10 @@ addrsymbol color
 ; kbd.asm
 addrsymbol get_char
 addrsymbol get_line
-; command.asm
+; commands.asm
+addrsymbol cmd_load
 addrsymbol _cmd_load
+addrsymbol cmd_call
 addrsymbol _cmd_call
 addrsymbol hex2word
 ; disk.asm

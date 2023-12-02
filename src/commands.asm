@@ -3,12 +3,12 @@
 ; The pointer points to a NULL-terminated string with the name of the command
 ; After the NULL byte, the implementation starts
 
-commands_ptr equ $
+commands_ptr:
     dw cmd_load
     dw cmd_call
     dw 0
 
-cmd_load db "l", 0
+cmd_load: db "l", 0
 _cmd_load:
     pop bp
     ; Convert arguments from hex and store in dapack
@@ -21,7 +21,7 @@ _cmd_load:
     push bp
     jmp readsect
 
-cmd_call db "c", 0
+cmd_call: db "c", 0
 _cmd_call:
     pop bp
     pop bx
