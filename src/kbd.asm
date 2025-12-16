@@ -7,17 +7,13 @@ get_char:
     ; Translate 0x0D (return) to 0x0A (\n)
     cmp al, 0x0D
     jne .out
-    mov ax, 0x0A
+    mov al, 0x0A
   .out: ret
 
 ; --- READ LINE ---
 ; Sets bx to the used size of the buffer
-; Destroys cx
+; Destroys cx, ax, dh
 get_line:
-    push ax
-    push dx
-    ;------
-    enable_cur
     xor bx, bx ; bl <- line buffer size
   .loop:
     call get_char
@@ -48,8 +44,4 @@ get_line:
     call print_char
     ; Null-terminate it
     mov byte [KBD_BUFF + bx], 0
-    disable_cur
-    ;-----
-    pop dx
-    pop ax
     ret

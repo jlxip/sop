@@ -27,6 +27,7 @@ addrsymbol ENTRYPOINT
 addrsymbol KBD_BUFF
 addrsymbol AUTOLOAD_ADDR
 addrsymbol start
+addrsymbol readsect
 addrsymbol _init_cs
 addrsymbol cmd
 addrsymbol _split
@@ -51,10 +52,5 @@ addrsymbol _cmd_load
 addrsymbol cmd_call
 addrsymbol _cmd_call
 addrsymbol hex2word
-; disk.asm
-addrsymbol dapack
-addrsymbol dapack_offset
-addrsymbol dapack_lba
-addrsymbol readsect
 
 db 0 ; Terminator

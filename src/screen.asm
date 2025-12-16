@@ -4,16 +4,27 @@ curword equ $ ; neat hack
 curx    db  0 ; screen column
 cury    db  0 ; screen row
 
+; 8086-safe save/restore for some registers
+%macro pushall 0
+    push ax
+    push bx
+    push di
+%endmacro
+
+%macro popall 0
+    pop di
+    pop bx
+    pop ax
+%endmacro
+
 ; --- internal: write char to framebuffer ---
 ; assumes es is set to FRAMEBUFFER
 ; dh <- char
 ; ch <- row
 ; cl <- column
+; trashes: ax, bx
 _fbwrite:
-    pusha
-    ;----
     ; [es:2*(COLS*row + column)] = character
-    xor ah, ah
     mov al, ch
     mov bl, COLS
     mul bl
@@ -23,18 +34,16 @@ _fbwrite:
     add bx, ax
     shl bx, 1
     mov byte [es:bx], dh
-    ;---
-    popa
     ret
 
 ; --- PRINT ONE CHARACTER ---
 ; dh <- char
 print_char:
-    pusha
+    pushall
     push es
     ;------
-    push FRAMEBUFFER
-    pop es
+    mov ax, FRAMEBUFFER
+    mov es, ax
     ; Get cursor position
     mov cx, word [curword] ; ch=row, cl=col
     ; Backspace?
@@ -76,28 +85,28 @@ print_char:
     mov word [curword], cx ; writeout
     ;-----
     pop es
-    ; Fallthrough to _update_cur
+    call _update_cur
+    popall
+    ret
 
 ; --- internal: UPDATE CURSOR ---
-; Expects pusha (so jmp only, no call) because it does popa
 _update_cur:
     ; int 10/ah=02h - video - set cursor position
     mov ah, 0x02
     xor bh, bh
     mov dx, word [curword]
     int 10h
-    popa ; !!
     ret
 
 ; --- internal: scroll screen ---
 ; assumes es is set to FRAMEBUFFER
 ; does not touch cury or curx
 _scroll:
-    pusha
     push ds
     ;------
     mov ax, word [color-1] ; Load color before ds change
-    push FRAMEBUFFER
+    mov bx, FRAMEBUFFER
+    push bx
     pop ds
     ; Move up
     mov si, 2 * COLS
@@ -110,14 +119,12 @@ _scroll:
     rep stosw ; same as below, it's fine
     ;------
     pop ds
-    popa
     ret
 
 ; --- PRINT ---
 ; di <- message (trashes it)
+; trashes: dh
 printz:
-    push dx
-    ;------
   .loop:
     mov dh, byte [di]
     test dh, dh
@@ -127,47 +134,22 @@ printz:
     inc di
     jmp short .loop
   .out:
-    ;-----
-    pop dx
     ret
 
 ; --- CLEAR ---
 clear:
-    pusha
     push es
     ;------
-    push FRAMEBUFFER
-    pop es
+    mov ax, FRAMEBUFFER
+    mov es, ax
     xor di, di
     db 0xB8 ; mov ax, 16-bit immediate
     db 0x00 ; LSB
     color: db DEFAULTCOLOR
     mov cx, ROWS * COLS
     rep stosw ; this does cx-=1 and di+=2
-    mov word [curword], 0
+    xor ax, ax
+    mov word [curword], ax
     ;-----
     pop es
-    jmp short _update_cur ; this does popa
-
-; --- macro: ENABLE CURSOR ---
-; destroys ah, cx
-%macro enable_cur 0
-    mov cx, CURSOR_SHAPE
-    reshape_cur
-%endmacro
-
-; --- macro: DISABLE CURSOR ---
-; destroys ah, cx
-%macro disable_cur 0
-    mov cx, CURSOR_DISABLE
-    reshape_cur
-%endmacro
-
-; --- internal macro: reshape cursor ---
-; cx <- cursor shape
-; destroys ah
-%macro reshape_cur 0
-    ; int 10/ah=01h - video - set text-mode cursor shape
-    mov ah, 0x01
-    int 10h
-%endmacro
+    jmp short _update_cur

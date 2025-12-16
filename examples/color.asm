@@ -1,6 +1,7 @@
 ; This is an example program for sop: color
 ; Compile it and join it with sop
 
+CPU 8086
 ORG 0x8000
 BITS 16
 

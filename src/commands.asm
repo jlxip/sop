@@ -11,13 +11,20 @@ commands_ptr:
 cmd_load: db "l", 0
 _cmd_load:
     pop bp
-    ; Convert arguments from hex and store in dapack
-    pop bx
+    pop bx ; addr
     call hex2word
-    mov word [dapack_offset], ax
-    pop bx
+    mov si, ax
+    pop bx ; cylinder
     call hex2word
-    mov word [dapack_lba], ax
+    mov ch, al
+    pop bx ; head
+    call hex2word
+    mov dh, al
+    pop bx ; sector
+    call hex2word
+    mov cl, al
+
+    mov bx, si
     push bp
     jmp readsect
 
@@ -32,20 +39,22 @@ _cmd_call:
 ; --- HEX TO WORD ---
 ; bx <- ptr to hex in big-endian caps (trashed)
 ; ax is output
-; trashes cx
+; trashes: cl, dl
 hex2word:
     xor ax, ax
   .loop:
-    mov cl, byte [bx]
-    test cl, cl
+    mov dl, byte [bx]
+    test dl, dl
     jz .end
-    bt cx, 6
-    jnc .thisdone
-    add cl, 9
-  .thisdone:
-    and cl, 0xF
-    shl ax, 4
-    or al, cl
+    cmp dl, '9'
+    jbe .digit
+    sub dl, 7
+  .digit:
+    sub dl, '0'
+    mov cl, 4
+    shl ax, cl
+    or al, dl
     inc bx
     jmp short .loop
-  .end: ret
+  .end:
+    ret

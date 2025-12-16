@@ -1,8 +1,9 @@
 ; This is an example program for sop
 ; Compile it, join it with sop, and run:
-; l 8000, 1
+; l 8000 0000 0000 0002
 ; c 8000
 
+CPU 8086
 ORG 0x8000
 BITS 16
 

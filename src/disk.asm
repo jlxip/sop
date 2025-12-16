@@ -1,21 +1,26 @@
-; Again, this address is aligned to 8 bytes
-; dapack structure, defaults are for autoload
-align 8
-dapack:
-    db 0x10 ; structure size
-    db 0x00 ; mbz
-    dw 0x01 ; number of blocks
-    dapack_offset: dw AUTOLOAD_ADDR
-    dw AUTOLOAD_SECT ; segment
-    dapack_lba: dq AUTOLOAD_LBA ; sector
-
-; Now that we're at it, let's put here the int 13h routine
-; Expects dapack to be filled
-; trashes: dl, si, ah, carry
+; ch <- cylinder
+; dh <- head
+; cl <- sector
+; bx <- address
+; Trashes: si, ax, dl
 readsect:
-    ; int 13h/ah=42h - extended read
+    ; Try to read five times
+    mov si, 5
+    ; Read
     mov dl, byte [BOOTDRIVE]
-    mov si, dapack
-    mov ah, 42h
+    mov al, 1 ; 1 sector
+.try:
+    mov ah, 02h
     int 13h
+    jc .retry
     ret
+    ; Retry
+.retry:
+    ; Reset disk
+    xor ah, ah
+    int 13h
+
+    dec si
+    mov dh, '!'
+    call print_char
+    jmp cmd

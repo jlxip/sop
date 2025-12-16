@@ -1,15 +1,6 @@
-; sop - Sector OPerations release 1
-; by @jlxip, 2023-11-26
+; sop - Sector OPerations release 2
+; by @jlxip, 2025-12-16
 ; All the code in src/ is under GPLv3.
-
-; sop assumes that it's ran on a system that:
-; - supports int 13h extensions -> PCs since 2000
-; - is not buggy regarding int 10h/ah=1,2 -> virtually no PC
-; - supports video mode 03h (>=80x25 text mode), even if it
-;     doesn't boot right into it -> will happen
-; - is not buggy regarding int 16h/ah=0 -> no PC
-; - does not mark as free: ~0x7B00, ~0x7E00, ~0x7F00 -> no PC
-; Very mild assumptions I thought were worth noting
 
 ; --- sop memory map ---
 ;  ...  -0x7BF7         <- stack
@@ -22,7 +13,7 @@
 DEFAULTCOLOR   equ 0x0F   ; white on black (Darwin-like)
 CURSOR_SHAPE   equ 0x0E0F ; underscore-like appearance
 ; --- Actual constants ---
-RELEASE        equ "1"
+RELEASE        equ "2"
 
 BOOTDRIVE      equ 0x7BFE
 ENTRYPOINT     equ 0x7C00
@@ -31,8 +22,6 @@ AUTOLOAD_ADDR  equ 0x8000
 FRAMEBUFFER    equ 0xB800
 
 AUTOLOAD_MARK  equ 0x69
-AUTOLOAD_SECT  equ 0
-AUTOLOAD_LBA   equ 1
 
 NEWLINE        equ 0x0A
 BACKSPACE      equ 0x08
@@ -40,12 +29,9 @@ ROWS           equ 25     ; Asserted
 COLS           equ 80     ; Asserted
 CURSOR_DISABLE equ 0x1000 ; bit 5 disables cursor
 
-; Beware: I'm very proud of sop. It has been very difficult to write.
-; Even though it is full of comments explaining what I'm doing at all
-; times, this is not an easy ride. This assembly is full of CPU tricks
-; and instruction-size optimizations. sop is a masterclass on x86 asm.
-; If you can understand it all, congrats! You're the CEO of x86 asm.
+; ------------------------------------------------------------------------------
 
+CPU 8086
 ORG 0x7C00
 BITS 16
 
@@ -54,7 +40,6 @@ start:
     xor ax, ax ; used below, the code is fractioned
     jmp 0x0000:_init_cs ; Assert CS selector
 
-; This address is aligned to 8 bytes
 %include "disk.asm"
 
 _init_cs:
@@ -78,10 +63,12 @@ _init_cs:
     call printz
 
     ; Autoloader
-    mov byte [AUTOLOAD_ADDR], ah ; ah is still zero
+    mov cx, 2
+    xor dh, dh
+    mov bx, AUTOLOAD_ADDR
     call readsect
-    cmp byte [AUTOLOAD_ADDR], AUTOLOAD_MARK
-    jz AUTOLOAD_ADDR+1
+    cmp byte [bx], AUTOLOAD_MARK
+    jz AUTOLOAD_ADDR + 1
 
 cmd:
     ; Prompt
@@ -93,7 +80,8 @@ cmd:
 _split:
     ; Split command into space-separated parts
     ; We go backwards
-    push word 0 ; Terminate list of separations
+    xor ax, ax
+    push ax ; Terminate list of separations
   .next:
     dec bx ; Start at the last character
     js .afterzero ; Overflown, go to last step
@@ -117,7 +105,8 @@ _split:
     ; beginning of a part
     cmp byte [KBD_BUFF], 0
     jz _execute
-    push word KBD_BUFF
+    mov ax, KBD_BUFF
+    push ax
 
 _execute:
     ; Command has been split
